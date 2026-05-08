@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Module</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            padding: 16px;
+        }
+        h1 { font-size: 20px; margin-bottom: 16px; color: #2f6f6d; }
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .info { color: #666; font-size: 14px; line-height: 1.55; }
+        code { background: #eef3f2; padding: 2px 5px; border-radius: 4px; }
+        ul { margin-left: 18px; margin-top: 8px; }
+        li { margin: 6px 0; }
+    </style>
+</head>
+<body>
+    <h1>My Module</h1>
+    <div class="card">
+        <p>This is the optional UI page for your module.</p>
+        <p class="info" style="margin-top: 8px;">
+            Return <code>_openModule: true</code> from Java to open this page from chat.
+            Use it for settings, status, previews, or any interactive workflow that does not fit in a chat bubble.
+        </p>
+    </div>
+    <div class="card">
+        <p><strong>Starter actions</strong></p>
+        <ul class="info">
+            <li><code>hello</code> returns a simple JSON response and HTML mini-card.</li>
+            <li><code>doTask</code> demonstrates parameter validation and structured output.</li>
+            <li><code>savePreference</code> and <code>readPreference</code> use module-private storage.</li>
+            <li><code>renderSummary</code> demonstrates table output via <code>_displayHtml</code>.</li>
+        </ul>
+    </div>
+</body>
+</html>

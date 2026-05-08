@@ -1,0 +1,45 @@
+{
+  "id": "network_demo",
+  "name": "网络请求演示",
+  "name_en": "Network Demo",
+  "description": "演示需要网络能力的模块如何声明 INTERNET 权限、发送 HTTP GET 请求并返回结构化结果",
+  "description_en": "Demonstrates how a module declares INTERNET permission, performs HTTP GET, and returns structured results",
+  "version": "1.0",
+  "icon": "public",
+  "soLibraries": [],
+  "h5Page": "index.html",
+  "pluginJar": "plugin.jar",
+  "pluginClass": "ai.rorsch.moduleplugins.network_demo.NetworkDemoPlugin",
+  "soLoadMode": "skip",
+  "capabilities": ["network"],
+  "permissions": [
+    {
+      "name": "android.permission.INTERNET",
+      "desc": "用于访问用户指定的 HTTPS/HTTP URL",
+      "desc_en": "Access user-specified HTTPS/HTTP URLs"
+    }
+  ],
+  "developer": {
+    "name": "Your Name",
+    "email": "your@email.com",
+    "url": "https://github.com/yourusername"
+  },
+  "apis": [
+    {
+      "name": "httpGet",
+      "desc": "请求一个 HTTPS/HTTP URL，返回状态码、内容类型和正文预览；适合查询公开 JSON API 或网页摘要",
+      "desc_en": "Fetch an HTTPS/HTTP URL and return status code, content type and body preview. Useful for public JSON APIs or page summaries",
+      "params": ["url", "maxChars"],
+      "paramDesc": ["要请求的 URL，仅支持 http/https", "最多读取字符数，默认 4096，最大 32768"],
+      "paramDesc_en": ["URL to fetch, http/https only", "Maximum characters to read, default 4096, max 32768"]
+    },
+    {
+      "name": "openPage",
+      "desc": "打开网络演示模块页面",
+      "desc_en": "Open the Network Demo module page",
+      "params": [],
+      "paramDesc": [],
+      "paramDesc_en": []
+    }
+  ]
+}
