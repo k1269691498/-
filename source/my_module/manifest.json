@@ -1,71 +1,19 @@
 {
-  "id": "my_module",
-  "name": "我的模块",
-  "name_en": "My Module",
-  "description": "用一句话描述你的模块功能（中文）",
-  "description_en": "Describe what your module does in one sentence (English)",
-  "version": "1.0",
-  "icon": "extension",
-  "soLibraries": [],
-  "h5Page": "index.html",
-  "pluginJar": "plugin.jar",
-  "pluginClass": "ai.rorsch.moduleplugins.my_module.MyModulePlugin",
-  "soLoadMode": "skip",
-  "capabilities": [],
-  "permissions": [],
-  "developer": {
-    "name": "Your Name",
-    "email": "your@email.com",
-    "url": "https://github.com/yourusername"
-  },
+  "id": "logistics_tracker",
+  "version": "1.1.0",
+  "name": "智能物流查询",
+  "description": "自动识别快递公司并查询物流轨迹。",
+  "pluginClass": "ai.rorsch.moduleplugins.logistics_tracker.LogisticsTrackerPlugin",
   "apis": [
     {
-      "name": "hello",
-      "desc": "向用户打招呼，当用户说【你好】【测试模块】时使用",
-      "desc_en": "Greet the user. Use when user says 'hello' or 'test module'",
-      "params": ["name"],
-      "paramDesc": ["用户的名字"],
-      "paramDesc_en": ["The user's name"]
-    },
-    {
-      "name": "doTask",
-      "desc": "处理一段输入文本，返回裁剪、长度、大写等结构化结果；用于演示参数校验和业务JSON输出",
-      "desc_en": "Process input text and return trimmed text, length and uppercase form. Demonstrates validation and structured JSON output",
-      "params": ["input"],
-      "paramDesc": ["要处理的文本"],
-      "paramDesc_en": ["Text to process"]
-    },
-    {
-      "name": "savePreference",
-      "desc": "保存一个键值到模块私有存储，不需要外部存储权限；用于演示 ModuleStorage",
-      "desc_en": "Save a key/value pair into module-private storage without external storage permission. Demonstrates ModuleStorage",
-      "params": ["key", "value"],
-      "paramDesc": ["键名", "要保存的值"],
-      "paramDesc_en": ["Key name", "Value to save"]
-    },
-    {
-      "name": "readPreference",
-      "desc": "从模块私有存储读取一个键值；用于演示持久化读取",
-      "desc_en": "Read a value from module-private storage. Demonstrates persistent reads",
-      "params": ["key"],
-      "paramDesc": ["键名"],
-      "paramDesc_en": ["Key name"]
-    },
-    {
-      "name": "renderSummary",
-      "desc": "把 items 数组渲染成聊天气泡里的 HTML 表格卡片；用于演示 _displayHtml",
-      "desc_en": "Render an items array as an HTML table card in chat. Demonstrates _displayHtml",
-      "params": ["items"],
-      "paramDesc": ["字符串数组，可选"],
-      "paramDesc_en": ["String array, optional"]
-    },
-    {
-      "name": "openPage",
-      "desc": "打开模块 H5 页面；用于演示 _openModule",
-      "desc_en": "Open the module H5 page. Demonstrates _openModule",
-      "params": [],
-      "paramDesc": [],
-      "paramDesc_en": []
+      "name": "queryLogistics",
+      "desc": "查询快递物流。只需提供单号，AI会自动识别快递公司。当用户说【查快递】【查单号】时使用。",
+      "desc_en": "Track package by number, auto-detect carrier.",
+      "params": ["trackingNumber"],
+      "paramDesc": ["快递单号（无需指定公司）"],
+      "paramDesc_en": ["Tracking number"]
     }
-  ]
+  ],
+  "capabilities": ["android.permission.INTERNET"]
 }
+
