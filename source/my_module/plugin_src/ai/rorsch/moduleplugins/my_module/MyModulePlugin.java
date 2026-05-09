@@ -1,153 +1,147 @@
-package ai.rorsch.moduleplugins.my_module;
+package ai.rorsch.moduleplugins.logistics_tracker;
 
 import android.content.Context;
-
-import ai.rorsch.pandagenie.module.runtime.HtmlOutputHelper;
-import ai.rorsch.pandagenie.module.runtime.ModulePlugin;
-import ai.rorsch.pandagenie.module.runtime.ModuleStorage;
-
 import org.json.JSONArray;
 import org.json.JSONObject;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.URLEncoder;
 
-import java.util.Locale;
+public class LogisticsTrackerPlugin {
 
-public class MyModulePlugin implements ModulePlugin {
+    // 1. 快递100自动识别接口 (免费，无需Key)
+    private static final String DETECT_API = "https://poll.kuaidi100.com/poll/result.do";
+    // 2. 物流查询接口
+    private static final String QUERY_API = "https://poll.kuaidi100.com/poll/query.do";
 
-    @Override
     public String invoke(Context context, String action, String paramsJson) throws Exception {
-        JSONObject params = new JSONObject(paramsJson != null && !paramsJson.isEmpty() ? paramsJson : "{}");
+        JSONObject params = new JSONObject(paramsJson);
+        String number = params.getString("trackingNumber");
 
-        switch (action) {
-            case "hello":
-                return hello(params);
-            case "doTask":
-                return doTask(context, params);
-            case "savePreference":
-                return savePreference(context, params);
-            case "readPreference":
-                return readPreference(context, params);
-            case "renderSummary":
-                return renderSummary(params);
-            case "openPage":
-                return openPage();
-            default:
-                return error("Unsupported action: " + action);
+        try {
+            // Step 1: 自动识别快递公司
+            String companyCode = detectCompany(number);
+            if (companyCode == null || companyCode.isEmpty()) {
+                return error("无法识别该快递单号的所属公司，请确认单号是否正确。");
+            }
+
+            // Step 2: 查询物流详情
+            JSONObject logisticsData = queryDetail(number, companyCode);
+            
+            // Step 3: 生成漂亮卡片
+            String htmlCard = buildHtmlCard(logisticsData, companyCode);
+
+            return success(htmlCard, "已为您查询到最新的物流信息。");
+
+        } catch (Exception e) {
+            return error("查询失败，请稍后再试：" + e.getMessage());
         }
     }
 
-    private String hello(JSONObject params) throws Exception {
-        String name = params.optString("name", "World");
-        JSONObject output = new JSONObject()
-                .put("message", "Hello, " + name + "!")
-                .put("module", "my_module");
-        String html = HtmlOutputHelper.card("OK", "My Module",
-                HtmlOutputHelper.keyValue(new String[][]{
-                        {"message", output.optString("message")},
-                        {"module", output.optString("module")}
-                }) + HtmlOutputHelper.successBadge());
-        return ok(output, "Hello, " + name + "! This module is working.", html);
-    }
+    /**
+     * 核心：自动识别快递公司
+     */
+    private String detectCompany(String number) throws Exception {
+        // 构造请求体（快递100的识别协议）
+        JSONObject param = new JSONObject();
+        param.put("num", number);
+        
+        JSONObject postData = new JSONObject();
+        postData.put("result", "false");
+        postData.put("num", number);
 
-    private String doTask(Context context, JSONObject params) throws Exception {
-        String input = params.optString("input", "");
-        if (input.isEmpty()) {
-            return error("Input is required");
+        String response = post("https://poll.kuaidi100.com/poll/result.do", postData.toString());
+        JSONObject json = new JSONObject(response);
+        
+        // 如果识别成功，返回公司编码（如：yuantong, shunfeng）
+        if ("200".equals(json.getString("status"))) {
+            return json.getJSONObject("auto").getString("comCode");
         }
-
-        JSONObject output = new JSONObject()
-                .put("input", input)
-                .put("trimmed", input.trim())
-                .put("length", input.length())
-                .put("uppercase", input.toUpperCase(Locale.ROOT));
-
-        return ok(output, "Processed: " + input);
+        return null;
     }
 
-    private String savePreference(Context context, JSONObject params) throws Exception {
-        String key = params.optString("key", "").trim();
-        String value = params.optString("value", "");
-        if (key.isEmpty()) return error("key is required");
+    /**
+     * 查询详细物流信息
+     */
+    private JSONObject queryDetail(String number, String company) throws Exception {
+        JSONObject param = new JSONObject();
+        param.put("com", company);
+        param.put("num", number);
+        param.put("resultv2", "1"); // 开启轨迹聚合
 
-        ModuleStorage storage = ModuleStorage.from(context);
-        JSONObject data = new JSONObject();
-        if (storage.exists("preferences.json")) {
-            data = new JSONObject(storage.readText("preferences.json"));
+        JSONObject postData = new JSONObject();
+        postData.put("customer", "YOUR_CUSTOMER_ID"); // 如果有ID填这里
+        postData.put("param", param.toString());
+        postData.put("sign", "YOUR_SIGN_KEY"); // 如果有Key填这里
+
+        // 注意：为了Demo能跑，这里用了一个简单的GET方式（实际生产建议用POST签名）
+        String url = "https://poll.kuaidi100.com/poll/query.do?com=" + company + "&nu=" + number;
+        String response = get(url);
+        
+        return new JSONObject(response);
+    }
+
+    /**
+     * 构建聊天卡片 (HTML)
+     */
+    private String buildHtmlCard(JSONObject data, String company) throws Exception {
+        StringBuilder html = new StringBuilder();
+        html.append("<div class='pg-card' style='border-left: 4px solid #4CAF50;'>");
+        html.append("<h3>📦 物流状态：<span style='color:#4CAF50;'>")
+            .append(data.optString("state", "运输中")).append("</span></h3>");
+        html.append("<p><strong>承运公司：</strong>").append(company).append("</p>");
+        html.append("<p><strong>快递单号：</strong>").append(data.optString("nu")).append("</p>");
+        html.append("<hr style='margin:8px 0;'>");
+
+        JSONArray list = data.getJSONArray("data");
+        for (int i = 0; i < list.length(); i++) {
+            JSONObject item = list.getJSONObject(i);
+            html.append("<div style='margin-bottom:8px;'>");
+            html.append("<p style='margin:0; font-weight:bold; color:#333;'>")
+                .append(item.getString("ftime")).append("</p>");
+            html.append("<p style='margin:0; color:#666;'>")
+                .append(item.getString("context")).append("</p>");
+            html.append("</div>");
         }
-        data.put(key, value);
-        storage.writeText("preferences.json", data.toString());
-
-        JSONObject output = new JSONObject()
-                .put("saved", true)
-                .put("key", key)
-                .put("value", value)
-                .put("usedSpaceBytes", storage.getUsedSpace());
-        return ok(output, "Saved preference: " + key);
+        html.append("</div>");
+        return html.toString();
     }
 
-    private String readPreference(Context context, JSONObject params) throws Exception {
-        String key = params.optString("key", "").trim();
-        if (key.isEmpty()) return error("key is required");
-
-        ModuleStorage storage = ModuleStorage.from(context);
-        JSONObject data = storage.exists("preferences.json")
-                ? new JSONObject(storage.readText("preferences.json"))
-                : new JSONObject();
-
-        JSONObject output = new JSONObject()
-                .put("key", key)
-                .put("exists", data.has(key))
-                .put("value", data.optString(key, ""));
-        return ok(output, data.has(key) ? "Preference found: " + key : "Preference not found: " + key);
+    // --- HTTP 工具方法 ---
+    private String get(String urlStr) throws Exception {
+        URL url = new URL(urlStr);
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestMethod("GET");
+        BufferedReader rd = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+        StringBuilder sb = new StringBuilder();
+        String line;
+        while ((line = rd.readLine()) != null) sb.append(line);
+        rd.close();
+        return sb.toString();
     }
 
-    private String renderSummary(JSONObject params) throws Exception {
-        JSONArray items = params.optJSONArray("items");
-        if (items == null) {
-            items = new JSONArray();
-            items.put("First item");
-            items.put("Second item");
-        }
-
-        String[][] rows = new String[items.length()][2];
-        for (int i = 0; i < items.length(); i++) {
-            rows[i][0] = String.valueOf(i + 1);
-            rows[i][1] = items.optString(i, "");
-        }
-
-        JSONObject output = new JSONObject()
-                .put("count", items.length())
-                .put("items", items);
-        String html = HtmlOutputHelper.card("LIST", "Summary",
-                HtmlOutputHelper.table(new String[]{"#", "Item"}, java.util.Arrays.asList(rows)));
-        return ok(output, "Rendered " + items.length() + " item(s).", html);
+    private String post(String urlStr, String body) throws Exception {
+        URL url = new URL(urlStr);
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestMethod("POST");
+        conn.setDoOutput(true);
+        conn.getOutputStream().write(body.getBytes());
+        BufferedReader rd = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+        StringBuilder sb = new StringBuilder();
+        String line;
+        while ((line = rd.readLine()) != null) sb.append(line);
+        rd.close();
+        return sb.toString();
     }
 
-    private String openPage() throws Exception {
-        return new JSONObject()
-                .put("success", true)
-                .put("output", new JSONObject().put("page", "index.html").toString())
-                .put("_openModule", true)
-                .put("_displayText", "Opening module page.")
-                .toString();
+    // --- 标准返回格式 ---
+    private String success(String html, String text) {
+        return "{\"success\":true, \"_displayText\":\"" + text + "\", \"_displayHtml\":\"" + html.replace("\"", "\\\"") + "\"}";
     }
 
-    private String ok(JSONObject output, String displayText) throws Exception {
-        return ok(output, displayText, null);
-    }
-
-    private String ok(JSONObject output, String displayText, String displayHtml) throws Exception {
-        JSONObject result = new JSONObject()
-                .put("success", true)
-                .put("output", output.toString());
-        if (displayText != null) result.put("_displayText", displayText);
-        if (displayHtml != null && !displayHtml.isEmpty()) result.put("_displayHtml", displayHtml);
-        return result.toString();
-    }
-
-    private String error(String message) throws Exception {
-        return new JSONObject()
-                .put("success", false)
-                .put("error", message)
-                .toString();
+    private String error(String msg) {
+        return "{\"success\":false, \"error\":\"" + msg + "\"}";
     }
 }
